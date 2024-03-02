@@ -74,6 +74,8 @@ class MyApp:
 
         # Bind a function to handle parameter selection
         self.parameters_listbox.bind("<ButtonRelease-1>", self.select_parameter)
+        # Bind a function to handle parameter removal on the selected parameters listbox
+        self.selected_params_listbox.bind("<Double-Button-1>", self.remove_selected_parameter)
 
         # Scrollbar for selected params
         scrollbar2 = tk.Scrollbar(self.root, command=self.selected_params_listbox.yview)
@@ -188,7 +190,14 @@ class MyApp:
             else:
                 messagebox.showinfo("Info", f"{selected_param} already selected.")
 
+    def remove_selected_parameter(self, event):
+        """Remove a selected parameter from the selected parameters list."""
+        selected_index = self.selected_params_listbox.curselection()
+        if selected_index:
+            self.selected_params_listbox.delete(selected_index)
+
     def enter_threshold(self):
+        """Prompt the user to enter a threshold for selected parameters with an adequately sized dialog."""
         # Get the selected parameters
         selected_parameters = self.selected_params_listbox.get(0, tk.END)
 
@@ -199,14 +208,18 @@ class MyApp:
 
         # Prompt user to enter threshold for selected parameters
         for param in selected_parameters:
-            threshold = simpledialog.askinteger("Threshold", f"Enter Threshold Value for {param}: ")
-            if threshold is not None:
-                self.thresholds[param] = threshold
+            # Configure the simpledialog to have a wider entry field
+            threshold = simpledialog.askstring("Threshold", f"Enter Threshold Value for {param}:",
+                                               initialvalue=self.thresholds.get(param, ""),
+                                               parent=self.root)
+            if threshold is not None and threshold.isdigit():
+                self.thresholds[param] = int(threshold)
             else:
-                print(f"No threshold entered for {param}")
+                messagebox.showwarning("Warning", f"Invalid input for {param}. Please enter a numeric value.")
 
         # After entering thresholds, call configure_phenotypes
         self.configure_phenotypes()
+
 
 
 
@@ -234,25 +247,16 @@ class MyApp:
             print("configure_phenotypes - DataFrame:")
             print(df)  # Add this line to print the DataFrame for debugging
 
-            # Determine phenotypes for each row based on threshold and parameters
-            phenotypes = ""
+            # Generate phenotypes for each row
+            all_phenotypes = []  # List to store phenotypes
             for index, row in df.iterrows():
-                phenotype = ""
-                for param in selected_parameters:
-                    value = row[param]
-                    if value < self.thresholds[param]:
-                        phenotype += "N"
-                    elif value > self.thresholds[param]:
-                        phenotype += "P"
-                    else:
-                        phenotype += "0"
-                phenotypes += phenotype + "\n"
+                phenotype = "".join(
+                    "P" if row[param] > self.thresholds[param] else "N"
+                    for param in selected_parameters
+                )
+                all_phenotypes.append(phenotype)
 
-            # Print all phenotypes to the console
-            print("All Phenotypes:")
-            print(phenotypes)
-
-            self.create_csv_with_phenotypes(selected_parameters, phenotypes)
+            self.create_csv_with_phenotypes(selected_parameters, all_phenotypes)
 
         except Exception as e:
             # Print the error for debugging
@@ -260,15 +264,18 @@ class MyApp:
             messagebox.showerror("Error", f"Error reading CSV file: {str(e)}")
 
     def process_data_in_chunks(self, file_path, selected_parameters, phenotypes):
-        chunk_size = 1000  # Adjust the chunk size as needed
+        chunk_size = 1000
         reader = pd.read_csv(file_path, usecols=selected_parameters, chunksize=chunk_size)
 
         output_chunks = []
+        phenotype_index = 0  # Keep track of the index in the phenotypes list
 
         for chunk in reader:
-            # Process each chunk
-            chunk["Phenotypes"] = phenotypes[:len(chunk)]
+            # Determine the slice of phenotypes for this chunk
+            chunk_phenotypes = phenotypes[phenotype_index: phenotype_index + len(chunk)]
+            chunk["Phenotype"] = chunk_phenotypes
             output_chunks.append(chunk)
+            phenotype_index += len(chunk)  # Update the index for the next chunk
 
         return pd.concat(output_chunks)
 
@@ -292,30 +299,27 @@ class MyApp:
             # Inform the user about the creation of the new CSV file
             messagebox.showinfo("CSV Created", f"CSV file with phenotypes created: {output_csv_file}")
 
+            # Count phenotype frequency and print it
             phenotype_frequency = self.count_phenotype_frequency(output_csv_file)
-
-        # Print phenotype frequency
             self.print_phenotype_frequency(phenotype_frequency)
+
+            # Create additional CSV files for parameters with thresholds and phenotypes with frequencies
+            parameters_thresholds_csv = os.path.join(output_directory, 'parameters_thresholds.csv')
+            self.create_parameters_thresholds_csv(parameters_thresholds_csv)
+
+            phenotypes_frequency_csv = os.path.join(output_directory, 'phenotypes_frequency.csv')
+            self.create_phenotypes_frequency_csv(phenotype_frequency, phenotypes_frequency_csv)
 
         except Exception as e:
             messagebox.showerror("Error", f"Error creating CSV with phenotypes: {str(e)}")
 
     def count_phenotype_frequency(self, file_path):
         try:
-            # Read the CSV file
             df = pd.read_csv(file_path)
-
-            # Get the last column which contains phenotypes
-            phenotypes = df.iloc[:, -1]
+            phenotype_column = df['Phenotype']  # Ensure this matches the column name used in 'process_data_in_chunks'
 
             # Count the frequency of each phenotype
-            phenotype_frequency = {}
-            for phenotype in phenotypes:
-                phenotype = phenotype.strip()  # Remove any leading/trailing whitespace
-                if phenotype in phenotype_frequency:
-                    phenotype_frequency[phenotype] += 1
-                else:
-                    phenotype_frequency[phenotype] = 1
+            phenotype_frequency = phenotype_column.value_counts().to_dict()
 
             return phenotype_frequency
 
@@ -335,6 +339,40 @@ class MyApp:
 
         except Exception as e:
             print("Error printing phenotype frequency:", e)
+
+    def create_parameters_thresholds_csv(self, output_path):
+        try:
+            # Ensure there are thresholds to write
+            if not self.thresholds:
+                print("No thresholds to write.")
+                return
+
+            # Create a DataFrame with parameters and thresholds
+            df = pd.DataFrame([self.thresholds.keys(), self.thresholds.values()], index=["Parameter", "Threshold"])
+
+            # Write DataFrame to a CSV file
+            df.to_csv(output_path, index=False)
+            print(f"Parameters and thresholds saved to {output_path}")
+
+        except Exception as e:
+            print("Error creating parameters and thresholds CSV:", e)
+
+    def create_phenotypes_frequency_csv(self, phenotype_frequency, output_path):
+        try:
+            # Ensure there is data to write
+            if not phenotype_frequency:
+                print("No phenotype frequency data to write.")
+                return
+
+            # Create a DataFrame from the phenotype frequency dictionary
+            df = pd.DataFrame(list(phenotype_frequency.items()), columns=["Phenotype", "Frequency"])
+
+            # Write DataFrame to a CSV file
+            df.to_csv(output_path, index=False)
+            print(f"Phenotype frequencies saved to {output_path}")
+
+        except Exception as e:
+            print("Error creating phenotype frequency CSV:", e)
 
 
 
