@@ -19,12 +19,10 @@ class MyApp:
         # Dictionary to store thresholds for each parameter
         self.thresholds = {}
 
-        # Create main frames or widgets
         self.create_menu_bar()
         self.create_main_content()
 
     def create_menu_bar(self):
-        # Create and configure a menu bar
         menubar = tk.Menu(self.root)
         self.root.config(menu=menubar)
 
@@ -32,7 +30,7 @@ class MyApp:
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Select File", command=self.parameters)
         file_menu.add_command(label="Save", command=self.save_file)
-        file_menu.add_command(label="fcstocsv", command=self.convert_and_download)
+        file_menu.add_command(label="FCS to CSV", command=self.convert_and_download)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self.root.destroy)
 
@@ -72,9 +70,7 @@ class MyApp:
         self.selected_params_listbox = tk.Listbox(self.root, selectmode=tk.SINGLE)
         self.selected_params_listbox.grid(row=3, column=0, sticky="nsew")
 
-        # Bind a function to handle parameter selection
         self.parameters_listbox.bind("<ButtonRelease-1>", self.select_parameter)
-        # Bind a function to handle parameter removal on the selected parameters listbox
         self.selected_params_listbox.bind("<Double-Button-1>", self.remove_selected_parameter)
 
         # Scrollbar for selected params
@@ -82,72 +78,47 @@ class MyApp:
         scrollbar2.grid(row=0, column=2, sticky="nsew")
         self.selected_params_listbox.config(yscrollcommand=scrollbar2.set)
 
-        # Button to indicate when finished selecting parameters
         finish_button = tk.Button(self.root, text="Finish Selection", command=self.enter_threshold)
         finish_button.grid(row=4, column=0, sticky="nsew")
 
-
-
     def open_file_explorer(self):
-        # Open a file dialog and store the selected file path
-        file_path = filedialog.askopenfilename(title="Open File")
-        if file_path:
-            print("Selected file:", file_path)
-            self.selected_file_path = file_path  # Set instance variable directly
-            print("Updated selected file:", self.selected_file_path)
-
-            self.parameters()  # Call parameters method after setting the selected file path
-            self.fcs_to_csv(file_path)  # Pass the selected file path to fcs_to_csv
+        # Open a file dialog and store the selected file paths
+        file_paths = filedialog.askopenfilenames(title="Open File", filetypes=[("FCS files", "*.fcs")])
+        if file_paths:
+            print("Selected files:", file_paths)
+            self.selected_file_paths = file_paths  # Store the list of file paths
+            self.convert_and_download()
 
     def save_file(self):
         print("Save action triggered")
 
-    def fcs_to_csv(self, filepath=""):
-        # Check if filepath is provided
-        if not filepath:
-            messagebox.showerror("Error", "No file selected.")
+    def fcs_to_csv(self, filepaths):
+        if not filepaths:
+            messagebox.showerror("Error", "No files selected.")
             return
 
-        # Create the "CSV_Files" directory if it doesn't exist
-        output_directory = "CSV_Files"
-        os.makedirs(output_directory, exist_ok=True)
+        for filepath in filepaths:
+            output_directory = "CSV_Files"
+            os.makedirs(output_directory, exist_ok=True)
+            output_csv_file = os.path.join(output_directory, f'converted_{os.path.basename(filepath)}.csv')
 
-        # File locations
-        output_csv_file = os.path.join(output_directory, f'converted_{os.path.basename(filepath)}.csv')
+            try:
+                metadata, data = fcsparser.parse(filepath, reformat_meta=True)
+                if '$PAR' not in metadata:
+                    continue  # Skip this file and move to the next one
 
-        try:
-            # Parse the FCS file
-            metadata, data = fcsparser.parse(filepath, reformat_meta=True)
+                df = pd.DataFrame(data)
+                df.to_csv(output_csv_file, index=False)
+                webbrowser.open(output_csv_file)  # Open each converted file
 
-            # Check if the '$PAR' key is present in metadata
-            if '$PAR' not in metadata:
-                messagebox.showerror("Error", "Invalid FCS file. '$PAR' key not found in metadata.")
-                return
-
-            # Convert to Pandas DataFrame
-            df = pd.DataFrame(data)
-
-            # Save DataFrame to CSV file
-            df.to_csv(output_csv_file, index=False)
-
-            # Inform the user about the conversion
-            messagebox.showinfo("Conversion Complete", f"FCS file converted and saved as {output_csv_file}")
-
-            # Automatically open the converted CSV file
-            webbrowser.open(output_csv_file)
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Error during conversion: {str(e)}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error during conversion of {os.path.basename(filepath)}: {str(e)}")
 
     def convert_and_download(self):
-        if self.selected_file_path:
-            # Use the existing CSV file path
-            print("Using existing CSV file path:", self.selected_file_path)
-            self.configure_phenotypes(0)  # 0 is a placeholder for tvalue, adjust as needed
+        if hasattr(self, 'selected_file_paths'):
+            self.fcs_to_csv(self.selected_file_paths)
         else:
-            # Trigger file explorer to select an FCS file
             self.open_file_explorer()
-            print("After convert and download - selected file path: ", self.selected_file_path)
 
     def parameters(self):
         # Open a file dialog and store the selected CSV file path
@@ -159,7 +130,7 @@ class MyApp:
                 parameters = df.columns.tolist()
 
                 # Update the Listbox to display parameters in a column
-                self.parameters_listbox.delete(0, tk.END)  # Clear existing items
+                self.parameters_listbox.delete(0, tk.END)
                 for parameter in parameters:
                     self.parameters_listbox.insert(tk.END, parameter)
 
@@ -167,7 +138,6 @@ class MyApp:
                 self.selected_file_path = file_path
                 print("Parameters - selected_file_path:", self.selected_file_path)
 
-                # Prompt user to enter threshold for each selected parameter
                 for param in parameters:
                     if param in self.selected_params_listbox.get(0, tk.END):
                         threshold = simpledialog.askinteger("Threshold", f"Enter Threshold Value for {param}: ")
@@ -191,17 +161,13 @@ class MyApp:
                 messagebox.showinfo("Info", f"{selected_param} already selected.")
 
     def remove_selected_parameter(self, event):
-        """Remove a selected parameter from the selected parameters list."""
         selected_index = self.selected_params_listbox.curselection()
         if selected_index:
             self.selected_params_listbox.delete(selected_index)
 
     def enter_threshold(self):
-        """Prompt the user to enter a threshold for selected parameters with an adequately sized dialog."""
-        # Get the selected parameters
         selected_parameters = self.selected_params_listbox.get(0, tk.END)
 
-        # Check if parameters are selected
         if not selected_parameters:
             messagebox.showwarning("Warning", "Please select parameters.")
             return
@@ -217,14 +183,12 @@ class MyApp:
             else:
                 messagebox.showwarning("Warning", f"Invalid input for {param}. Please enter a numeric value.")
 
-        # After entering thresholds, call configure_phenotypes
         self.configure_phenotypes()
 
 
 
 
     def configure_phenotypes(self):
-        # Get the selected parameters
         selected_parameters = self.selected_params_listbox.get(0, tk.END)
 
         # Check if parameters are selected
@@ -232,7 +196,6 @@ class MyApp:
             messagebox.showwarning("Warning", "Please select parameters.")
             return
 
-        # Check if thresholds are entered for all selected parameters
         for param in selected_parameters:
             if param not in self.thresholds:
                 messagebox.showwarning("Warning", f"Please enter threshold for parameter {param}.")
@@ -259,7 +222,6 @@ class MyApp:
             self.create_csv_with_phenotypes(selected_parameters, all_phenotypes)
 
         except Exception as e:
-            # Print the error for debugging
             print("configure_phenotypes - Error reading CSV file:", str(e))
             messagebox.showerror("Error", f"Error reading CSV file: {str(e)}")
 
@@ -293,21 +255,21 @@ class MyApp:
             os.makedirs(output_directory, exist_ok=True)
             output_csv_file = os.path.join(output_directory, f'phenotyped_{os.path.basename(self.selected_file_path)}')
 
-            # Save the modified DataFrame to a new CSV file
             modified_df.to_csv(output_csv_file, index=False)
 
-            # Inform the user about the creation of the new CSV file
             messagebox.showinfo("CSV Created", f"CSV file with phenotypes created: {output_csv_file}")
 
             # Count phenotype frequency and print it
             phenotype_frequency = self.count_phenotype_frequency(output_csv_file)
             self.print_phenotype_frequency(phenotype_frequency)
 
-            # Create additional CSV files for parameters with thresholds and phenotypes with frequencies
-            parameters_thresholds_csv = os.path.join(output_directory, 'parameters_thresholds.csv')
+            base_filename = os.path.splitext(os.path.basename(self.selected_file_path))[0]
+
+            # File paths for output CSV files
+            parameters_thresholds_csv = os.path.join(output_directory, f'{base_filename}_parameter_threshold.csv')
             self.create_parameters_thresholds_csv(parameters_thresholds_csv)
 
-            phenotypes_frequency_csv = os.path.join(output_directory, 'phenotypes_frequency.csv')
+            phenotypes_frequency_csv = os.path.join(output_directory, f'{base_filename}_phenotype_frequency.csv')
             self.create_phenotypes_frequency_csv(phenotype_frequency, phenotypes_frequency_csv)
 
         except Exception as e:
@@ -316,7 +278,7 @@ class MyApp:
     def count_phenotype_frequency(self, file_path):
         try:
             df = pd.read_csv(file_path)
-            phenotype_column = df['Phenotype']  # Ensure this matches the column name used in 'process_data_in_chunks'
+            phenotype_column = df['Phenotype']
 
             # Count the frequency of each phenotype
             phenotype_frequency = phenotype_column.value_counts().to_dict()
@@ -329,7 +291,6 @@ class MyApp:
 
     def print_phenotype_frequency(self, phenotype_frequency):
         try:
-            # Print the phenotype frequency
             print("Phenotype Frequency:")
             seen_phenotypes = set()
             for phenotype, frequency in phenotype_frequency.items():
@@ -342,15 +303,12 @@ class MyApp:
 
     def create_parameters_thresholds_csv(self, output_path):
         try:
-            # Ensure there are thresholds to write
             if not self.thresholds:
                 print("No thresholds to write.")
                 return
 
-            # Create a DataFrame with parameters and thresholds
             df = pd.DataFrame([self.thresholds.keys(), self.thresholds.values()], index=["Parameter", "Threshold"])
 
-            # Write DataFrame to a CSV file
             df.to_csv(output_path, index=False)
             print(f"Parameters and thresholds saved to {output_path}")
 
@@ -359,15 +317,12 @@ class MyApp:
 
     def create_phenotypes_frequency_csv(self, phenotype_frequency, output_path):
         try:
-            # Ensure there is data to write
             if not phenotype_frequency:
                 print("No phenotype frequency data to write.")
                 return
 
-            # Create a DataFrame from the phenotype frequency dictionary
             df = pd.DataFrame(list(phenotype_frequency.items()), columns=["Phenotype", "Frequency"])
 
-            # Write DataFrame to a CSV file
             df.to_csv(output_path, index=False)
             print(f"Phenotype frequencies saved to {output_path}")
 
@@ -377,16 +332,12 @@ class MyApp:
 
 
 def main():
-    # Create the main window
     root = tk.Tk()
 
-    # Create an instance of your application
     app = MyApp(root)
 
-    # Set the window size
     root.geometry("600x400")
 
-    # Start the main event loop
     root.mainloop()
 
 if __name__ == "__main__":
