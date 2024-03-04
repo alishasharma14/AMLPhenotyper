@@ -3,17 +3,17 @@
 **Prerequisites**: 
   Python 3.x installed
     **Required Python libraries:**
-    tkinter
-    pandas
-    fcsparser
-    reportlab
-    webbrowser
+    * tkinter
+    * pandas
+    * fcsparser
+    * reportlab
+    * webbrowser
     
 **The application generates the following output files:**
-Converted CSV Files: CSV files converted from FCS format.
-Phenotyped CSV Files: CSV files containing phenotypes based on user-defined thresholds.
-Parameter Threshold CSV File: CSV file containing the thresholds set for each parameter.
-Phenotype Frequency CSV File: CSV file containing the frequency of each phenotype generated.
+* Converted CSV Files: CSV files converted from FCS format.
+* Phenotyped CSV Files: CSV files containing phenotypes based on user-defined thresholds.
+* Parameter Threshold CSV File: CSV file containing the thresholds set for each parameter.
+* Phenotype Frequency CSV File: CSV file containing the frequency of each phenotype generated.
 
 **Usage:**
 Run Main to start 
