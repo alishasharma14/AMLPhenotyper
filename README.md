@@ -2,12 +2,12 @@
 
 **Prerequisites**: 
   Python 3.x installed
-    **Required Python libraries:**
-    * tkinter
-    * pandas
-    * fcsparser
-    * reportlab
-    * webbrowser
+    **Required Python libraries:** 
+  tkinter
+  pandas
+  fcsparser
+  reportlab
+  webbrowser
     
 **The application generates the following output files:**
 * Converted CSV Files: CSV files converted from FCS format.
