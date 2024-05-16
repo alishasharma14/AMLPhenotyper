@@ -4,6 +4,10 @@ from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
 import fcsparser
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+import mplcursors
+from tkinter import Toplevel
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import webbrowser
@@ -339,27 +343,69 @@ class MyApp:
             print("Error creating phenotype frequency CSV:", e)
 
     def visualize_phenotype_frequency(self, phenotype_frequency, selected_parameters):
-        try:
-            phenotypes = list(phenotype_frequency.keys())
-            frequencies = list(phenotype_frequency.values())
+        def filter_phenotypes(parameter, state):
+            filtered_phenotypes = {phenotype: freq for phenotype, freq in phenotype_frequency.items() if
+                                   (phenotype[selected_parameters.index(parameter)] == state)}
+            return filtered_phenotypes
 
-            # Create a title from the selected parameters
-            parameters_str = ", ".join(selected_parameters)
-            title = f"{parameters_str} Phenotype Frequency Distribution"
+        def update_plot(param):
+            # Create a new Tkinter window for the plots
+            plot_window = Toplevel(self.root)
+            plot_window.title(f"{param} Phenotype Frequency")
 
-            plt.figure(figsize=(10, 6))
-            plt.bar(phenotypes, frequencies, color='skyblue')
-            plt.xlabel('Phenotype')
-            plt.ylabel('Frequency')
-            plt.title(title)
-            plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
-            plt.tight_layout()
+            # Create a new figure for the plots
+            new_fig = plt.Figure(figsize=(15, 6))
+            ax1 = new_fig.add_subplot(121)
+            ax2 = new_fig.add_subplot(122)
 
-            # Show the plot
-            plt.show()
+            # Positive filter
+            pos_phenotypes = filter_phenotypes(param, "P")
+            ax1.bar(pos_phenotypes.keys(), pos_phenotypes.values(), color='lightgreen')
+            ax1.set_title(f"{param} Positive")
+            ax1.set_xlabel('Phenotype')
+            ax1.set_ylabel('Frequency')
+            ax1.tick_params(axis='x', rotation=90)
 
-        except Exception as e:
-            print("Error visualizing phenotype frequency:", e)
+            # Negative filter
+            neg_phenotypes = filter_phenotypes(param, "N")
+            ax2.bar(neg_phenotypes.keys(), neg_phenotypes.values(), color='lightcoral')
+            ax2.set_title(f"{param} Negative")
+            ax2.set_xlabel('Phenotype')
+            ax2.set_ylabel('Frequency')
+            ax2.tick_params(axis='x', rotation=90)
+
+            # Embed the plot in the Tkinter window
+            canvas = FigureCanvasTkAgg(new_fig, master=plot_window)
+            canvas.draw()
+            canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Create a new Tkinter window
+        plot_window = Toplevel(self.root)
+        plot_window.title("Phenotype Frequency Visualization")
+
+        # Create a title from the selected parameters
+        parameters_str = ", ".join(selected_parameters)
+        title = f"{parameters_str} Phenotype Frequency Distribution"
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(phenotype_frequency.keys(), phenotype_frequency.values(), color='skyblue')
+        ax.set_xlabel('Phenotype')
+        ax.set_ylabel('Frequency')
+        ax.set_title(title)
+        ax.tick_params(axis='x', rotation=90)
+
+        # Embed the plot in the Tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=plot_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # Create buttons for each parameter
+        button_frame = tk.Frame(plot_window)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+
+        for param in selected_parameters:
+            param_button = tk.Button(button_frame, text=param, command=lambda p=param: update_plot(p))
+            param_button.pack(side=tk.LEFT)
 
 
 
