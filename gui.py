@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
 import pandas as pd
 import fcsparser
+import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import webbrowser
@@ -261,7 +262,7 @@ class MyApp:
 
             # Count phenotype frequency and print it
             phenotype_frequency = self.count_phenotype_frequency(output_csv_file)
-            self.print_phenotype_frequency(phenotype_frequency)
+            self.print_phenotype_frequency(phenotype_frequency, selected_parameters)
 
             base_filename = os.path.splitext(os.path.basename(self.selected_file_path))[0]
 
@@ -289,7 +290,7 @@ class MyApp:
             print("Error counting phenotype frequency:", e)
             return None
 
-    def print_phenotype_frequency(self, phenotype_frequency):
+    def print_phenotype_frequency(self, phenotype_frequency, selected_parameters):
         try:
             print("Phenotype Frequency:")
             seen_phenotypes = set()
@@ -297,6 +298,9 @@ class MyApp:
                 if phenotype not in seen_phenotypes:
                     print(f"{phenotype}: {frequency}")
                     seen_phenotypes.add(phenotype)
+
+            # Call the visualization method with selected parameters
+            self.visualize_phenotype_frequency(phenotype_frequency, selected_parameters)
 
         except Exception as e:
             print("Error printing phenotype frequency:", e)
@@ -321,13 +325,41 @@ class MyApp:
                 print("No phenotype frequency data to write.")
                 return
 
+            # Convert phenotype frequency dictionary to DataFrame
             df = pd.DataFrame(list(phenotype_frequency.items()), columns=["Phenotype", "Frequency"])
 
+            # Add a new column with the actual frequency format "123/13000"
+            df[""] = df["Frequency"].astype(str) + "/" + str(df["Frequency"].sum())
+
+            # Write DataFrame to CSV file
             df.to_csv(output_path, index=False)
             print(f"Phenotype frequencies saved to {output_path}")
 
         except Exception as e:
             print("Error creating phenotype frequency CSV:", e)
+
+    def visualize_phenotype_frequency(self, phenotype_frequency, selected_parameters):
+        try:
+            phenotypes = list(phenotype_frequency.keys())
+            frequencies = list(phenotype_frequency.values())
+
+            # Create a title from the selected parameters
+            parameters_str = ", ".join(selected_parameters)
+            title = f"{parameters_str} Phenotype Frequency Distribution"
+
+            plt.figure(figsize=(10, 6))
+            plt.bar(phenotypes, frequencies, color='skyblue')
+            plt.xlabel('Phenotype')
+            plt.ylabel('Frequency')
+            plt.title(title)
+            plt.xticks(rotation=90)  # Rotate x-axis labels for better readability
+            plt.tight_layout()
+
+            # Show the plot
+            plt.show()
+
+        except Exception as e:
+            print("Error visualizing phenotype frequency:", e)
 
 
 
