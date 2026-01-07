@@ -1,34 +1,66 @@
-**AML Phenotyper**
+# AML Phenotyper
 
-**Prerequisites**: 
-  Python 3.x installed
-    **Required Python libraries:** 
-  tkinter
-  pandas
-  fcsparser
-  reportlab
-  webbrowser
-    
-**The application generates the following output files:**
-* Converted CSV Files: CSV files converted from FCS format.
-* Phenotyped CSV Files: CSV files containing phenotypes based on user-defined thresholds.
-* Parameter Threshold CSV File: CSV file containing the thresholds set for each parameter.
-* Phenotype Frequency CSV File: CSV file containing the frequency of each phenotype generated.
+## Overview
+AML Phenotyper is a GUI-based Python application designed to automate flow cytometry data analysis for acute myeloid leukemia (AML) research. The tool converts FCS files to CSV format, applies user-defined parameter thresholds, and generates phenotype classifications and frequency reports, reducing manual data processing for researchers.
 
-**Usage:**
-Run Main to start 
+This project focuses on usability, data automation, and translating biomedical research workflows into a functional software tool.
 
-  Converting FCS Files to CSV: 
-  * hover over "file" in the top left corner and select "FCS to CSV" 
-  * select the file(s) from file explorer that are to be converted
-  * the converted files will open on your computer and will also be in the CSV file directory
-  * download the csv files in order to use them for phenotyping 
+---
 
-  Configuring Phenotypes, Phenotype Frequency, etc.: 
-  * hover over "file" in the top left corner and select "Select File"
-  * select a csv file from file explorer (if a .csv file is not selected, or the file is in improper format, parameters from the file will not be shown)
-  * select the parameters from the box to be considered (double click a chosen parameter in the second box to remove)
-  * after selecting all parameters, click "Finish Selection" at the bottom of the screen
-  * enter thresholds for each parameter in the appearing textboxes
-  * after thresholds are entered, three csv files will be in the CSV Files directory (phenotypes, frequency, and threshold files)
-  * open the files in explorer to view 
+## Features
+- Converts FCS files to CSV for downstream analysis
+- Interactive graphical user interface built with Tkinter
+- User-defined parameter selection and thresholding
+- Automated phenotype classification
+- Generates structured output reports for analysis and review
+
+---
+
+## Tech Stack
+- Python  
+- Tkinter (GUI)
+- Pandas (data processing)
+- fcsparser (FCS file parsing)
+- ReportLab (report generation)
+- webbrowser (output file access)
+
+---
+
+## Output Files
+The application generates the following files:
+- **Converted CSV Files** – CSV files converted from FCS format
+- **Phenotyped CSV Files** – CSV files containing phenotype assignments
+- **Parameter Threshold CSV** – Records threshold values for each parameter
+- **Phenotype Frequency CSV** – Summary of phenotype counts and frequencies
+
+---
+
+## Usage
+
+### Running the Application
+Run the main Python file to launch the GUI.
+
+### Converting FCS Files to CSV
+1. Open the application
+2. Navigate to **File → FCS to CSV**
+3. Select one or more `.fcs` files
+4. Converted CSV files will open automatically and be saved in the CSV output directory
+5. Download the CSV files for phenotyping
+
+### Configuring Phenotypes
+1. Navigate to **File → Select File**
+2. Select a valid CSV file
+3. Choose parameters to include in phenotyping  
+   - Double-click a parameter to remove it
+4. Click **Finish Selection**
+5. Enter threshold values for each parameter
+6. The application generates:
+   - Phenotyped CSV file
+   - Phenotype frequency CSV file
+   - Threshold configuration CSV file
+7. Open the generated files in file explorer to review results
+
+---
+
+## Notes
+This project demonstrates applied data analysis, GUI design, and automation in a biomedical research context. It highlights the ability to convert domain-specific requirements into a usable software application.
