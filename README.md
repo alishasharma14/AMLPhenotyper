@@ -27,7 +27,6 @@ This project focuses on usability, data automation, and translating biomedical r
 ---
 
 ## Output Files
-The application generates the following files:
 - **Converted CSV Files** – CSV files converted from FCS format
 - **Phenotyped CSV Files** – CSV files containing phenotype assignments
 - **Parameter Threshold CSV** – Records threshold values for each parameter
