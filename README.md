@@ -1,4 +1,4 @@
-# AML Phenotyper
+# 🔬 AML Phenotyper
 
 ## Overview
 AML Phenotyper is a GUI-based Python application designed to automate flow cytometry data analysis for acute myeloid leukemia (AML) research. The tool converts FCS files to CSV format, applies user-defined parameter thresholds, and generates phenotype classifications and frequency reports, reducing manual data processing for researchers.
